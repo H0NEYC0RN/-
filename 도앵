@@ -1,0 +1,55 @@
+import discord
+from discord.ext import commands
+
+
+intents = discord.Intents.default()
+intents.messages = True
+intents.members = True  # Enable member tracking
+
+bot = commands.Bot(command_prefix='>', intents=discord.Intents.all()) #봇 인스턴스 생성 - command_prefix='명령어'
+
+
+@bot.event
+async def on_ready(): 
+    print(f'Logged in as {bot.user.name}') #봇이 준비되었을때(로그인했을 때) 콘솔에 나타나는 메세지
+
+
+@bot.command(name='들어와') #명령어 '들어와'
+
+async def join_channel(ctx): #ctx 매개변수 = 명령의 컨텍스트(보낸 사람, 전송된 위치)
+    #명령어를 입력한 유저가 음성 채널에 있는지 탐지
+    if ctx.author.voice and ctx.author.voice.channel:
+        channel = ctx.author.voice.channel
+        await channel.connect()
+        print(f'Joined {channel.name}')
+    else:
+        await ctx.send('음성 채널에 입장한 상태로 명령어를 입력하세요.') #사용자가 음성채널에 없으면 오류 메세지 출력
+
+
+@bot.command(name='나가') #명령어 '나가'
+async def exit_channel(ctx):
+    if ctx.voice_client:
+        await ctx.voice_client.disconnect()
+        print(f'Exited {channel.name}')
+    else:
+        await ctx.send('음성 채널에 입장한 상태로 명령어를 입력하세요.')
+
+
+@bot.event
+async def on_voice_state_update(member, before, after):
+    channel = member.guild.voice_client
+    if channel:
+        if before.channel != after.channel:
+            try:
+                if after.channel:
+                    await channel.channel.send(f'{member.display_name} 님이 들어왔어요.', tts=True)
+                    print(f'{member.display_name}')
+                if before.channel:
+                    await channel.channel.send(f'{member.display_name} 님이 나가셨어요.', tts=True)
+                    print(f'{member.display_name}')
+            except Exception as e:
+                print(f"An error occurred: {e}") #예외 검사
+
+
+# Run the bot
+bot.run('MTIwMDE5MzU1NzY2ODA1MzAxMg.GCf_hi.cf6154C9ZZLfPHENefqfg9DUP7vgQex5W0Txt8')
