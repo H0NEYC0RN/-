@@ -1,95 +1,127 @@
 import discord
 from discord.ext import commands
 
-
 intents = discord.Intents.default()
 intents.messages = True
 intents.members = True  # Enable member tracking
 
 bot = commands.Bot(command_prefix='>', intents=discord.Intents.all()) #봇 인스턴스 생성 - command_prefix='명령어'
 
+textread = True
 
-textread = False
+
+
+
 
 @bot.event
-async def on_ready(): 
-    print(f'Logged in as {bot.user.name}') #봇이 준비되었을때(로그인했을 때) 콘솔에 나타나는 메세지
+async def on_ready():
+    print(f'Logged in as {bot.user.name}')  # 봇이 준비되었음을 콘솔에 출력합니다.
+    
+    for guild in bot.guilds: #봇이 참가하고 있는 모든 서버 체크
+        print(f'현재 가동중 : 서버 / {guild.name}')
+        for vc in guild.voice_channels:  # 각 서버의 모든 음성 채널 체크
+            if bot.user in vc.members:  # 봇이 해당 음성 채널에 참가 중인지 체크
+                print(f'현재 가동중 : 서버 / {guild.name} | 채널 / {vc.name}')
+                await vc.send(f'봇이 가동되었습니다. 현재 {vc.name} 채널에 있습니다.')
 
 
-@bot.command(name='들어와') #명령어 '들어와'
 
+
+
+@bot.command(name='들어와')
 async def join_channel(ctx): #ctx 매개변수 = 명령의 컨텍스트(보낸 사람, 전송된 위치)
-    #명령어를 입력한 유저가 음성 채널에 있는지 탐지
+    
     if ctx.author.voice and ctx.author.voice.channel:
         channel = ctx.author.voice.channel
         await channel.connect()
         print(f'Joined {channel.name}')
-    else:
-        await ctx.send('음성 채널에 입장한 상태로 명령어를 입력하세요.') #사용자가 음성채널에 없으면 오류 메세지 출력
-
-
-@bot.command(name='읽어') #명령어 '읽어'
-async def read_TTS(ctx):
-    if ctx.author.voice and ctx.author.voice.channel:
-        textread = True
-        channel = ctx.author.voice.channel
-        print(f'TTS={textread}')
-        await ctx.send(f'지금부터 디스코드 TTS 기능을 사용해요.')
-        print(f'Joined {channel.name}')
+        
     else:
         await ctx.send('음성 채널에 입장한 상태로 명령어를 입력하세요.') #사용자가 음성채널에 없으면 오류 메세지 출력
 
 
 
-@bot.command(name='읽지마') #명령어 '읽지마'
-async def Dont_read_TTS(ctx):
-    if ctx.author.voice and ctx.author.voice.channel:
-        textread = False
-        channel = ctx.author.voice.channel
-        print(f'TTS={textread}')
-        await ctx.send(f'지금부터 디스코드 TTS 기능을 중단해요.')
-        print(f'Joined {channel.name}')
-    else:
-        await ctx.send('음성 채널에 입장한 상태로 명령어를 입력하세요.') #사용자가 음성채널에 없으면 오류 메세지 출력
-
-
-@bot.command(name='나가') #명령어 '나가'
+@bot.command(name='나가')
 async def exit_channel(ctx):
+    
     if ctx.voice_client:
+        channel = ctx.voice_client.channel
         await ctx.voice_client.disconnect()
         print(f'Exited {channel.name}')
+
     else:
         await ctx.send('음성 채널에 입장한 상태로 명령어를 입력하세요.')
 
 
+
+
+@bot.command(name='읽어')
+async def read_TTS(ctx):
+    global textread
+    
+    if ctx.author.voice and ctx.author.voice.channel:
+        textread = True
+        print(f'TTS={textread}')
+        await ctx.send(f'지금부터 디스코드 TTS 기능을 사용해요.')
+    else:
+        await ctx.send('음성 채널에 입장한 상태로 명령어를 입력하세요.') #사용자가 음성채널에 없으면 오류 메세지 출력
+
+@bot.command(name='읽지마')
+async def Dont_read_TTS(ctx):
+    global textread
+    
+    if ctx.author.voice and ctx.author.voice.channel:
+        textread = False
+        print(f'TTS={textread}')
+        await ctx.send(f'지금부터 디스코드 TTS 기능을 중단해요.')
+    else:
+        await ctx.send('음성 채널에 입장한 상태로 명령어를 입력하세요.') #사용자가 음성채널에 없으면 오류 메세지 출력
+
+
+
+
+
+@bot.command(name='말해봐')
+async def any_text(ctx):
+    await ctx.send('한가하냐?', tts=True)
+
+
+
+
+
 @bot.event
 async def on_voice_state_update(member, before, after):
-    channel = member.guild.voice_client
+    global textread
+    global channel
+    
+    guild_name = member.guild.name
+
+    
+    if member.bot:
+        return
+
+    if before.channel != after.channel:
+        if after.channel:
+            print(f'서버 : {guild_name} / {member.display_name} joined {after.channel.name}')
+
+            if textread:
+                await after.channel.send(f'{member.display_name} 님이 들어왔어요.', tts=True)
+            else:
+                await after.channel.send(f'{member.display_name} 님이 들어왔어요.')
 
 
-    if channel:
-        if before.channel != after.channel:
-            try:
-                if after.channel:
-                    print(f'{member.display_name}')
-                    
-                    if textread:
-                        await channel.channel.send(f'{member.display_name} 님이 들어왔어요.', tts=True)
-                        
-                    else:
-                        await channel.channel.send(f'{member.display_name} 님이 들어왔어요.')
-                       
-                if before.channel:
-                    print(f'{member.display_name}')
-                    
-                    if textread:
-                        await channel.channel.send(f'{member.display_name} 님이 나가셨어요.', tts=True)
 
-                    else:
-                        await channel.channel.send(f'{member.display_name} 님이 나가셨어요.')
-                    
-            except Exception as e:
-                print(f"An error occurred: {e}") #예외 검사
+        if before.channel:
+            print(f'서버 : {guild_name} / {member.display_name} left {before.channel.name}')
+
+            if textread:
+                await before.channel.send(f'{member.display_name} 님이 나가셨어요.', tts=True)
+            else:
+                await before.channel.send(f'{member.display_name} 님이 나가셨어요.')
+
+
+
+
 
 # Run the bot
-bot.run('MTIwMDE5MzU1NzY2ODA1MzAxMg.GkG1FZ.pGGcRHH9iyUEyLmSeY_gxfTMFNjbuwtZK-zueE')
+bot.run('봇 토큰')
